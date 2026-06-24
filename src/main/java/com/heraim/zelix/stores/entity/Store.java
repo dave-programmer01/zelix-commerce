@@ -9,6 +9,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -72,11 +74,29 @@ public class Store {
     private int trustScore = 50;
 
     @Builder.Default
-    private boolean isActive = true;
+    private boolean isActive = false;
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    @ElementCollection(targetClass = DeliveryOption.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "store_delivery_options", joinColumns = @JoinColumn(name = "store_id"))
+    @Column(name = "delivery_option")
+    @Builder.Default
+    private Set<DeliveryOption> deliveryOptions = new HashSet<>();
+
+    @ElementCollection(targetClass = PaymentMethod.class)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = "store_accepted_payment_methods", joinColumns = @JoinColumn(name = "store_id"))
+    @Column(name = "payment_method")
+    @Builder.Default
+    private Set<PaymentMethod> acceptedPaymentMethods = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private VerificationTier verificationTier = VerificationTier.STANDARD;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -84,5 +104,5 @@ public class Store {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-
 }
+

@@ -18,4 +18,6 @@ public interface StoreRepository extends JpaRepository<Store, UUID> {
             "AND (:city IS NULL OR s.city = :city) " +
             "AND (:state IS NULL OR s.state = :state)")
     Page<Store> search(@Param("q") String q, @Param("city") String city, @Param("state") String state, Pageable pageable);
+
+    boolean existsBySlug(String candidate);
 }
