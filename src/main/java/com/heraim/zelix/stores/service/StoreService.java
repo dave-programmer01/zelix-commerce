@@ -1,5 +1,6 @@
 package com.heraim.zelix.stores.service;
 
+import com.heraim.zelix.analytics.service.SearchLogService;
 import com.heraim.zelix.category.service.CategoryService;
 import com.heraim.zelix.common.dto.PagedResponse;
 import com.heraim.zelix.common.exception.ResourceNotFoundException;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
 import java.util.List;
@@ -26,6 +28,7 @@ public class StoreService {
 
     private final StoreRepository storeRepository;
     private final CategoryService categoryService;
+    private final SearchLogService searchLogService;
 
     public StoreResponse create(CreateStoreRequest request, User owner) {
         String slug = generateSlug(request.name());
@@ -121,11 +124,13 @@ public class StoreService {
         return StoreResponse.from(savedStore);
     }
 
-    public PagedResponse<StoreResponse> search(String q, String city, String state, Pageable pageable) {
+    public PagedResponse<StoreResponse> search(String q, String city, String state, Pageable pageable, User user) {
         Page<Store> storePage = storeRepository.search(q, city, state, pageable);
         List<StoreResponse> data = storePage.getContent().stream()
                 .map(StoreResponse::from)
                 .toList();
+
+        searchLogService.logSearch(q, null, null, (int) storePage.getTotalElements(), user);
 
         return new PagedResponse<>(
                 data,
@@ -160,5 +165,30 @@ public class StoreService {
         }
 
         return candidate;
+    }
+
+    public Store getStoreEntityById(UUID id) {
+        return storeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Store not found with id: " + id));
+    }
+
+    public void activateIfEligible(UUID storeId) {
+        Store store = storeRepository.findById(storeId).orElse(null);
+        if (store != null && !store.isActive()) {
+            store.setActive(true);
+            storeRepository.save(store);
+        }
+    }
+
+    @Transactional
+    public void incrementFollowerCount(Store store) {
+        store.setFollowerCount(store.getFollowerCount() + 1);
+        storeRepository.save(store);
+    }
+
+    @Transactional
+    public void decrementFollowerCount(Store store) {
+        store.setFollowerCount(Math.max(0, store.getFollowerCount() - 1));
+        storeRepository.save(store);
     }
 }

@@ -1,6 +1,7 @@
 package com.heraim.zelix.stores.controller;
  
 import com.heraim.zelix.common.dto.PagedResponse;
+import com.heraim.zelix.followers.service.StoreFollowerService;
 import com.heraim.zelix.stores.dto.CreateStoreRequest;
 import com.heraim.zelix.stores.dto.StoreResponse;
 import com.heraim.zelix.stores.dto.UpdateStoreRequest;
@@ -23,6 +24,7 @@ import java.util.UUID;
 public class StoreController {
 
     private final StoreService storeService;
+    private final StoreFollowerService storeFollowerService;
 
     @PostMapping
     @PreAuthorize("hasRole('VENDOR')")
@@ -55,7 +57,22 @@ public class StoreController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String state,
-            Pageable pageable) {
-        return ResponseEntity.ok(storeService.search(q, city, state, pageable));
+            Pageable pageable,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(storeService.search(q, city, state, pageable, user));
+    }
+
+    @PostMapping("/{id}/follow")
+    @PreAuthorize("hasRole('BUYER')")
+    public ResponseEntity<Void> follow(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+        storeFollowerService.follow(id, user);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/follow")
+    @PreAuthorize("hasRole('BUYER')")
+    public ResponseEntity<Void> unfollow(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+        storeFollowerService.unfollow(id, user);
+        return ResponseEntity.noContent().build();
     }
 }
